@@ -6,6 +6,14 @@ export default function Home() {
       <header className="w-full text-center">
         <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100">Welcome to devKtOps</h1>
         <p className="mt-4 text-lg text-gray-700 dark:text-gray-300">Empowering DevOps for your organization</p>
+        <p className="mt-4 text-lg text-gray-700 dark:text-gray-300">We provide tools, learning resources, and a community to help you succeed.</p>
+        <Image
+          src="/devktops.jpeg"
+          alt="devKtOps Logo"
+          width={200}
+          height={200}
+          className="mt-8 mx-auto rounded"
+        />
       </header>
 
       <section className="my-16 grid gap-6 lg:grid-cols-3">
