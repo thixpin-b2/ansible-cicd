@@ -1,0 +1,8 @@
+.github/workflows/
+.next/
+.git/
+.vscode/
+node_modules/
+devops/playbooks.yml
+devops/nginx.conf
+README.md
