@@ -9,7 +9,7 @@
     DOMAIN_NAME: "{{ domain_name }}"
     NGINX_CONFiG_FILE: /etc/nginx/sites-available/{{ DOMAIN_NAME }}.conf
     NGINX_ENABLED_FILE: /etc/nginx/sites-enabled/{{ DOMAIN_NAME }}.conf
-    ENABLE_SSL: if "{{ enable_ssl }}" == "true" else false
+    ENABLE_SSL: "{{ enable_ssl }}"
     APP_PORT: 3001
 
   tasks:
@@ -50,7 +50,7 @@
       apt:
         name: "{{ item }}"
         state: present
-      when: ENABLE_SSL
+      when: ENABLE_SSL == "true"
       with_items:
         - certbot
         - python3-certbot-nginx
@@ -74,8 +74,8 @@
         ports:
           - "{{ APP_PORT }}:3000"
         env:
-          - NODE_ENV=production
-          - PORT=3000
+          NODE_ENV: production
+          PORT: 3000
     
     - name: Wait for Docker container to start
       wait_for:
@@ -105,7 +105,7 @@
 
     - name: Install SSL certificate
       command: "certbot --nginx -d {{ DOMAIN_NAME }} -n --agree-tos --email {{ email }}"
-      when: ENABLE_SSL
+      when: ENABLE_SSL == "true"
 
     
   handlers:
