@@ -48,7 +48,7 @@
       
     - name: Install Certbot and Nginx plugin
       apt:
-        name: {{ item }}
+        name: "{{ item }}"
         state: present
       when: ENABLE_SSL
       with_items:
