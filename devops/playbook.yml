@@ -101,7 +101,7 @@
       notify: Restart Nginx
 
     - name: Install SSL certificate
-      command: "certbot --nginx -d {{ DOMAIN_NAME }} -n --agree-tos --email {{ email }}"
+      command: "certbot --nginx -d {{ DOMAIN_NAME }} -n --agree-tos --email thixpin@devktops.com"
       when: ENABLE_SSL == "true"
 
     
