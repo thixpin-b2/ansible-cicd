@@ -7,23 +7,22 @@
     DOCKERHUB_USERNAME: "{{ dockerhub_username }}"
     DOCKERHUB_TOKEN: "{{ dockerhub_token }}"
     DOMAIN_NAME: "{{ domain_name }}"
+    NGINX_CONFiG_VERSION: /etc/nginx/sites-available/{{ DOMAIN_NAME }}.version
     NGINX_CONFiG_FILE: /etc/nginx/sites-available/{{ DOMAIN_NAME }}.conf
     NGINX_ENABLED_FILE: /etc/nginx/sites-enabled/{{ DOMAIN_NAME }}.conf
     ENABLE_SSL: "{{ enable_ssl }}"
     APP_PORT: 3001
+    SWAP_SIZE: 1024
 
   tasks:
     - name: Configure swap
       include_role:
         name: geerlingguy.swap
       vars:
-        swap_file_size_mb: 1024
-        swap_swappiness: 10
-
-    - name: APT update
-      apt:
-        update_cache: yes
-
+        swap_file_size_mb: "{{SWAP_SIZE}}"
+      when: (ansible_swaptotal_mb is not defined) or 
+            (ansible_swaptotal_mb < SWAP_SIZE - 8)
+            
     - name: Install Docker
       apt:
         name: docker.io
@@ -45,20 +44,31 @@
         name: nginx
         state: started
         enabled: yes
-      
+        
+    - name: Set SSL mode
+      set_fact:
+        ssl_on: "{{ 'true' if ENABLE_SSL == 'true' else 'false' }}"
+
     - name: Install Certbot and Nginx plugin
       apt:
         name: "{{ item }}"
         state: present
-      when: ENABLE_SSL == "true"
+      when: ssl_on
       with_items:
         - certbot
         - python3-certbot-nginx
 
-    - name: Login to DockerHub with token
+    - name: Set Docker registry
+      set_fact:
+        docker_registry: "https://index.docker.io/v1/"
+      when: docker_registry is not defined
+
+    - name: Docker login
       docker_login:
+        registry: "{{ docker_registry }}"
         username: "{{ DOCKERHUB_USERNAME }}"
         password: "{{ DOCKERHUB_TOKEN }}"
+        reauthorize: yes
 
     - name: Pull Docker image
       docker_image:
@@ -69,10 +79,14 @@
       docker_container:
         name: "{{ DOMAIN_NAME }}"
         image: "{{ IMAGE_NAME }}"
+        image_name_mismatch: recreate
         state: started
         restart_policy: always
         ports:
           - "{{ APP_PORT }}:3000"
+        env:
+          NODE_ENV: production
+          PORT: "3000"
     
     - name: Wait for Docker container to start
       wait_for:
@@ -81,32 +95,34 @@
         delay: 5
         timeout: 60
           
-    - name: Check if Nginx configuration exists
-      stat:
-        path: "{{ NGINX_CONFiG_FILE }}"
-      register: nginx_config
-
     - name: Copy Nginx configuration
       template:
         src: nginx.conf.j2
+        dest: "{{ NGINX_CONFiG_VERSION }}"
+      register: nginx_config
+
+    - name: Add Nginx configuration
+      template:
+        src: nginx.conf.j2
         dest: "{{ NGINX_CONFiG_FILE }}"
-      when: not nginx_config.stat.exists
+      when: nginx_config.changed
+      notify: 
+        - Restart Nginx
+        - Install SSL certificate
 
     - name: Enable Nginx configuration
       file:
         src: "{{ NGINX_CONFiG_FILE }}"
         dest: "{{ NGINX_ENABLED_FILE }}"
-        state: link 
-      when: not nginx_config.stat.exists
-      notify: Restart Nginx
-
-    - name: Install SSL certificate
-      command: "certbot --nginx -d {{ DOMAIN_NAME }} -n --agree-tos --email thixpin@devktops.com"
-      when: ENABLE_SSL == "true"
-
+        state: link
+      
     
   handlers:
     - name: Restart Nginx
       service:
         name: nginx
         state: reloaded
+
+    - name: Install SSL certificate
+      command: "certbot --nginx -d {{ DOMAIN_NAME }} -n --agree-tos --email thixpin@devktops.com"
+      when: ssl_on
