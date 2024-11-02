@@ -73,9 +73,6 @@
         restart_policy: always
         ports:
           - "{{ APP_PORT }}:3000"
-        env:
-          NODE_ENV: production
-          PORT: 3000
     
     - name: Wait for Docker container to start
       wait_for:
