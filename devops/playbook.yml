@@ -80,7 +80,7 @@
     - name: Wait for Docker container to start
       wait_for:
         host: localhost
-        port: {{ APP_PORT }}
+        port: "{{ APP_PORT }}"
         delay: 5
         timeout: 60
           
@@ -92,7 +92,7 @@
     - name: Copy Nginx configuration
       template:
         src: nginx.conf.j2
-        dest: /etc/nginx/sites-available/{{ DOMAIN_NAME }}.conf
+        dest: "{{ NGINX_CONFiG_FILE }}"
       when: not nginx_config.stat.exists
 
     - name: Enable Nginx configuration
